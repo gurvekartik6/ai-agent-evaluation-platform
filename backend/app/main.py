@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from app.api.routes import agents
 
 app = FastAPI(
     title="AI Agent Evaluation Platform",
@@ -12,3 +13,9 @@ async def root():
         "msg" : "AI Agent Evaluation Platoform is running",
         "status" : "running"
     }
+    
+app.include_router(
+    agents.router,
+    prefix="/api/v1/agents",
+    tags=["Agents"]
+)
