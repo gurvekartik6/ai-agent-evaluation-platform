@@ -1,78 +1,90 @@
-from fastapi import FastAPI, APIRouter, HTTPException, status
+
+from fastapi import APIRouter, HTTPException, status
+
+from app.schemas.agent import (
+    AgentCreate,
+    AgentResponse,
+    AgentListResponse
+)
 
 router = APIRouter()
 
-app = FastAPI()
 
+# Temporary in-memory data
 agents = [
     {
-        "agent_id" : "001",
-        "agent_name" : "Calculator Agent",
-        "agent_description" : "Perform Mathematics Opeations",
-        "active" : True
+        "id": "agent-001",
+        "name": "Research Agent",
+        "description": "Researches technical topics",
+        "framework": "LangGraph",
+        "active": True
     },
     {
-        "agent_id" : "002",
-        "agent_name" : "Calculator Agent",
-        "agent_description" : "Perform Mathematics Opeations",
-        "active" : True
-    },
-    {
-        "agent_id" : "003",
-        "agent_name" : "Calculator Agent",
-        "agent_description" : "Perform Mathematics Opeations",
-        "active" : False
-    },
-    {
-        "agent_id" : "004",
-        "agent_name" : "Calculator Agent",
-        "agent_description" : "Perform Mathematics Opeations",
-        "active" : False
+        "id": "agent-002",
+        "name": "Analysis Agent",
+        "description": "Analyses collected information",
+        "framework": "Custom",
+        "active": True
     }
 ]
 
-@router.get("/")
-async def get_agents():
-    
-    active_agents = []
-    total_agents = len(agents)
-    
-    for agent in agents:
-        if agent["active"] == True:
-            active_agents.append(agent)
-            
+
+# Get all agents
+@router.get(
+    "/",
+    response_model=AgentListResponse
+)
+async def get_agents(
+    active: bool | None = None,
+    limit: int = 10
+):
+
+    results = agents
+
+    if active is not None:
+        results = [
+            agent for agent in agents
+            if agent["active"] == active
+        ]
+
+    selected_agents = results[:limit]
+
     return {
-        "Active Agents": active_agents,
-        "Total Agents" : total_agents
+        "count": len(selected_agents),
+        "agents": selected_agents
     }
 
 
-@router.get("/{agent_id}")
-async def get_agent(agent_id : str):
-    
+# Get one agent
+@router.get(
+    "/{agent_id}",
+    response_model=AgentResponse
+)
+async def get_agent(agent_id: str):
+
     for agent in agents:
-        if agent["agent_id"] == agent_id:
+        if agent["id"] == agent_id:
             return agent
-    
+
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
-        detail="Agent Not Found"
+        detail="Agent not found"
     )
-    
-@router.post("/", status_code=status.HTTP_201_CREATED)
-async def create_agent(agent_data: dict):
 
-    if not agent_data.get("name"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Agent name is required"
-        )
+
+# Create a new agent
+@router.post(
+    "/",
+    response_model=AgentResponse,
+    status_code=status.HTTP_201_CREATED
+)
+async def create_agent(agent_data: AgentCreate):
 
     new_agent = {
         "id": f"agent-{len(agents) + 1:03d}",
-        "name": agent_data["name"],
-        "description": agent_data.get("description", ""),
-        "framework": agent_data.get("framework", "Custom"),
+        "name": agent_data.name,
+        "description": agent_data.description,
+        "framework": agent_data.framework,
         "active": True
     }
 
